@@ -32,27 +32,26 @@ export async function POST(request: NextRequest) {
 
     // Verify blob exists and get metadata
     console.log('Verifying blob exists:', blobUrl);
+    let downloadUrl: string;
     try {
       const blobMetadata = await head(blobUrl);
       console.log('Blob metadata:', {
         size: blobMetadata.size,
         contentType: blobMetadata.contentType,
         url: blobMetadata.url,
+        downloadUrl: blobMetadata.downloadUrl,
       });
+      // Use downloadUrl if available, fallback to regular url
+      downloadUrl = blobMetadata.downloadUrl || blobMetadata.url;
     } catch (headError) {
       console.error('Blob verification failed:', headError);
       throw new Error('Failed to verify blob - file may not exist or permissions issue');
     }
 
-    // Download file from Vercel Blob using authenticated SDK
-    // Note: Using fetch() on public URL fails if public access is not enabled
-    // Using Vercel Blob SDK ensures authenticated access works
-    console.log('Downloading file from blob...');
-    const blobResponse = await fetch(blobUrl, {
-      headers: {
-        'Authorization': `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}`,
-      },
-    });
+    // Download file from Vercel Blob
+    // Use downloadUrl from metadata which includes proper parameters
+    console.log('Downloading file from blob using downloadUrl...');
+    const blobResponse = await fetch(downloadUrl);
 
     if (!blobResponse.ok) {
       console.error('Blob download failed:', {
