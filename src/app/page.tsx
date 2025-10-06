@@ -15,11 +15,13 @@ import {
 } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import DownloadIcon from '@mui/icons-material/Download';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 
 export default function Home() {
   const [file, setFile] = useState<File | null>(null);
   const [transcript, setTranscript] = useState<string>('');
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState<string>('');
   const [statusMessage, setStatusMessage] = useState<string>('');
@@ -110,24 +112,30 @@ export default function Home() {
 
       const data = await response.json();
 
-      // Show cleanup status
-      setStatusMessage('Cleaning up temporary files...');
-
-      // Small delay to show cleanup message
-      await new Promise(resolve => setTimeout(resolve, 500));
-
       setTranscript(data.transcript);
-      setStatusMessage('');
 
-      // Show warning if blob wasn't deleted
-      if (!data.blobDeleted) {
+      // Show success feedback
+      if (data.blobDeleted) {
+        setSuccess(true);
+        setStatusMessage('✓ Complete - file cleaned up!');
+        setLoading(false);
+        setUploadProgress(0);
+
+        // Keep success state for 2.5 seconds
+        setTimeout(() => {
+          setSuccess(false);
+          setStatusMessage('');
+        }, 2500);
+      } else {
+        // Warning if blob wasn't deleted
         console.warn('Blob cleanup failed - temporary file may not have been deleted');
         setError('Warning: Temporary file cleanup may have failed. Transcription was successful.');
+        setLoading(false);
+        setUploadProgress(0);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
       setStatusMessage('');
-    } finally {
       setLoading(false);
       setUploadProgress(0);
     }
@@ -204,10 +212,29 @@ export default function Home() {
               size="large"
               fullWidth
               onClick={handleTranscribe}
-              disabled={loading}
-              startIcon={loading ? <CircularProgress size={20} /> : <CloudUploadIcon />}
+              disabled={loading || success}
+              startIcon={
+                success ? (
+                  <CheckCircleIcon />
+                ) : loading ? (
+                  <CircularProgress size={20} />
+                ) : (
+                  <CloudUploadIcon />
+                )
+              }
+              sx={{
+                backgroundColor: success ? '#4caf50' : undefined,
+                '&:hover': {
+                  backgroundColor: success ? '#45a049' : undefined,
+                },
+                transition: 'background-color 0.3s ease',
+              }}
             >
-              {loading ? statusMessage || 'Processing...' : 'Transcribe'}
+              {success
+                ? statusMessage
+                : loading
+                ? statusMessage || 'Processing...'
+                : 'Transcribe'}
             </Button>
 
             {/* Upload Progress */}
