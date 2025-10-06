@@ -68,6 +68,12 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 2. Add your `OPENAI_API_KEY` in the Vercel environment variables
 3. Deploy!
 
+**Important Notes:**
+- **File Size Limit**: Vercel has request body size limits
+  - **Hobby/Pro**: ~4.5MB default (configured to 25MB in vercel.json, requires Pro plan)
+  - For larger files, consider upgrading to Pro or use a different hosting solution
+- **Function Timeout**: 300s timeout requires Pro plan or higher
+
 ### Manual Deployment
 
 ```bash

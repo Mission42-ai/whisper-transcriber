@@ -1,12 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
 export async function POST(request: NextRequest) {
   try {
+    // Check if API key is configured
+    if (!process.env.OPENAI_API_KEY) {
+      return NextResponse.json(
+        { error: 'OpenAI API key not configured. Please set OPENAI_API_KEY in environment variables.' },
+        { status: 500 }
+      );
+    }
+
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+
     const formData = await request.formData();
     const file = formData.get('file') as File;
 
@@ -45,17 +53,19 @@ export async function POST(request: NextRequest) {
   } catch (error: unknown) {
     console.error('Transcription error:', error);
 
-    // Handle OpenAI specific errors
-    const err = error as { error?: { message?: string }; status?: number };
-    if (err?.error?.message) {
+    // Handle different error types
+    if (error instanceof Error) {
+      // Check for OpenAI API errors
+      const openAIError = error as { status?: number; message?: string };
+
       return NextResponse.json(
-        { error: err.error.message },
-        { status: err.status || 500 }
+        { error: openAIError.message || 'Failed to transcribe audio' },
+        { status: openAIError.status || 500 }
       );
     }
 
     return NextResponse.json(
-      { error: 'Failed to transcribe audio' },
+      { error: 'An unexpected error occurred' },
       { status: 500 }
     );
   }
@@ -63,3 +73,7 @@ export async function POST(request: NextRequest) {
 
 // Increase max duration for serverless function (Vercel)
 export const maxDuration = 300; // 5 minutes (requires Pro plan or higher)
+
+// Increase body size limit (Next.js 15+)
+export const runtime = 'nodejs';
+export const preferredRegion = 'auto';

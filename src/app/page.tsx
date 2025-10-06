@@ -51,9 +51,30 @@ export default function Home() {
         body: formData,
       });
 
+      // Check if response is JSON
+      const contentType = response.headers.get('content-type');
+      const isJson = contentType?.includes('application/json');
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Transcription failed');
+        let errorMessage = 'Transcription failed';
+
+        if (isJson) {
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.error || errorMessage;
+          } catch {
+            errorMessage = `Server error: ${response.status}`;
+          }
+        } else {
+          const text = await response.text();
+          errorMessage = text || `Server error: ${response.status}`;
+        }
+
+        throw new Error(errorMessage);
+      }
+
+      if (!isJson) {
+        throw new Error('Invalid response format from server');
       }
 
       const data = await response.json();
