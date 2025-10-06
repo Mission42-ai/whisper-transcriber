@@ -68,11 +68,12 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 2. Add your `OPENAI_API_KEY` in the Vercel environment variables
 3. Deploy!
 
-**Important Notes:**
-- **File Size Limit**: Vercel has request body size limits
-  - **Hobby/Pro**: ~4.5MB default (configured to 25MB in vercel.json, requires Pro plan)
-  - For larger files, consider upgrading to Pro or use a different hosting solution
-- **Function Timeout**: 300s timeout requires Pro plan or higher
+**Important Notes for Vercel Pro:**
+- **File Size**: Configured for up to 25MB (OpenAI Whisper API maximum)
+  - Vercel Pro plan recommended for optimal performance with larger files
+  - If you encounter 413 errors with large files, this is a Vercel platform limitation
+- **Function Timeout**: 60s (configured in vercel.json, works on Pro plan)
+- **Alternative**: For files > 10MB or frequent large uploads, consider Railway.app or Render.com for better reliability
 
 ### Manual Deployment
 

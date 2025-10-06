@@ -25,12 +25,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate file size
-    // Note: Vercel has request body limits (4.5MB on Hobby, can be higher on Pro)
-    const MAX_SIZE = 4 * 1024 * 1024; // 4MB to be safe on Vercel Hobby
+    // Validate file size (OpenAI Whisper API max is 25MB)
+    const MAX_SIZE = 25 * 1024 * 1024; // 25MB - OpenAI Whisper API limit
     if (file.size > MAX_SIZE) {
       return NextResponse.json(
-        { error: 'File size exceeds 4MB limit. Please use a smaller file or upgrade to Pro plan.' },
+        { error: 'File size exceeds 25MB limit (OpenAI Whisper API maximum).' },
         { status: 400 }
       );
     }
