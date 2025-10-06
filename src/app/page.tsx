@@ -219,16 +219,6 @@ export default function Home() {
                 </Typography>
               </Box>
             )}
-
-            {/* Processing Status */}
-            {loading && statusMessage && (
-              <Alert severity="info" className="mt-4" icon={false}>
-                <Box className="flex items-center gap-2">
-                  <CircularProgress size={16} />
-                  <Typography variant="body2">{statusMessage}</Typography>
-                </Box>
-              </Alert>
-            )}
           </Box>
         )}
 
