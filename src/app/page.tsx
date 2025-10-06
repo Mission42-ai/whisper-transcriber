@@ -60,8 +60,15 @@ export default function Home() {
     setStatusMessage('Uploading file...');
 
     try {
+      // Handle OPUS files - rename to .ogg before upload
+      // OpenAI expects .ogg extension for OPUS codec
+      let uploadFilename = file.name;
+      if (file.name.toLowerCase().endsWith('.opus')) {
+        uploadFilename = file.name.replace(/\.opus$/i, '.ogg');
+      }
+
       // Step 1: Upload file to Vercel Blob
-      const blob = await upload(file.name, file, {
+      const blob = await upload(uploadFilename, file, {
         access: 'public',
         handleUploadUrl: '/api/upload',
         onUploadProgress: (progress) => {
@@ -80,7 +87,7 @@ export default function Home() {
         },
         body: JSON.stringify({
           blobUrl: blob.url,
-          filename: file.name,
+          filename: uploadFilename,
         }),
       });
 
