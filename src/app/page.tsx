@@ -1,103 +1,194 @@
-import Image from "next/image";
+'use client';
+
+import { useState, useCallback } from 'react';
+import { useDropzone } from 'react-dropzone';
+import {
+  Container,
+  Paper,
+  Typography,
+  Box,
+  Button,
+  CircularProgress,
+  Alert,
+} from '@mui/material';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import DownloadIcon from '@mui/icons-material/Download';
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [file, setFile] = useState<File | null>(null);
+  const [transcript, setTranscript] = useState<string>('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string>('');
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+  const onDrop = useCallback((acceptedFiles: File[]) => {
+    if (acceptedFiles.length > 0) {
+      setFile(acceptedFiles[0]);
+      setTranscript('');
+      setError('');
+    }
+  }, []);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      'audio/*': ['.opus', '.mp3', '.wav', '.m4a', '.ogg', '.webm'],
+    },
+    maxFiles: 1,
+  });
+
+  const handleTranscribe = async () => {
+    if (!file) return;
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/transcribe', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Transcription failed');
+      }
+
+      const data = await response.json();
+      setTranscript(data.transcript);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDownload = () => {
+    if (!transcript) return;
+
+    const blob = new Blob([transcript], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${file?.name.replace(/\.[^/.]+$/, '')}_transcript.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <Container maxWidth="md" className="min-h-screen py-12">
+      <Box className="text-center mb-8">
+        <Typography variant="h3" component="h1" className="font-bold mb-2">
+          Whisper Transcriber
+        </Typography>
+        <Typography variant="body1" color="text.secondary">
+          Upload an audio file and get an instant transcription
+        </Typography>
+      </Box>
+
+      <Paper elevation={3} className="p-8">
+        {/* Upload Area */}
+        <Box
+          {...getRootProps()}
+          className={`border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-colors ${
+            isDragActive
+              ? 'border-blue-500 bg-blue-50'
+              : 'border-gray-300 hover:border-blue-400 hover:bg-gray-50'
+          }`}
         >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
+          <input {...getInputProps()} />
+          <CloudUploadIcon
+            className="mx-auto mb-4"
+            sx={{ fontSize: 64, color: 'primary.main' }}
           />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+          {isDragActive ? (
+            <Typography variant="h6">Drop the file here...</Typography>
+          ) : (
+            <>
+              <Typography variant="h6" className="mb-2">
+                Drag & drop an audio file here
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                or click to select a file
+              </Typography>
+              <Typography variant="caption" color="text.secondary" className="mt-2 block">
+                Supports: .opus, .mp3, .wav, .m4a, .ogg, .webm
+              </Typography>
+            </>
+          )}
+        </Box>
+
+        {/* File Info */}
+        {file && (
+          <Box className="mt-6">
+            <Alert severity="info" className="mb-4">
+              <Typography variant="body2">
+                <strong>File:</strong> {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
+              </Typography>
+            </Alert>
+
+            <Button
+              variant="contained"
+              size="large"
+              fullWidth
+              onClick={handleTranscribe}
+              disabled={loading}
+              startIcon={loading ? <CircularProgress size={20} /> : <CloudUploadIcon />}
+            >
+              {loading ? 'Transcribing...' : 'Transcribe'}
+            </Button>
+          </Box>
+        )}
+
+        {/* Error */}
+        {error && (
+          <Alert severity="error" className="mt-6">
+            {error}
+          </Alert>
+        )}
+
+        {/* Transcript */}
+        {transcript && (
+          <Box className="mt-6">
+            <Typography variant="h6" className="mb-3">
+              Transcript
+            </Typography>
+            <Paper
+              variant="outlined"
+              className="p-4 max-h-96 overflow-y-auto bg-gray-50"
+            >
+              <Typography
+                variant="body1"
+                component="pre"
+                className="whitespace-pre-wrap font-mono text-sm"
+              >
+                {transcript}
+              </Typography>
+            </Paper>
+
+            <Button
+              variant="outlined"
+              size="large"
+              fullWidth
+              onClick={handleDownload}
+              startIcon={<DownloadIcon />}
+              className="mt-4"
+            >
+              Download as Markdown
+            </Button>
+          </Box>
+        )}
+      </Paper>
+
+      <Box className="text-center mt-8">
+        <Typography variant="caption" color="text.secondary">
+          Powered by OpenAI Whisper API
+        </Typography>
+      </Box>
+    </Container>
   );
 }
