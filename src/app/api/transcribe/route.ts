@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { del } from '@vercel/blob';
+import { del, head } from '@vercel/blob';
 import OpenAI from 'openai';
 
 export async function POST(request: NextRequest) {
@@ -30,15 +30,35 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Verify blob exists and get metadata
+    console.log('Verifying blob exists:', blobUrl);
+    try {
+      const blobMetadata = await head(blobUrl);
+      console.log('Blob metadata:', {
+        size: blobMetadata.size,
+        contentType: blobMetadata.contentType,
+        url: blobMetadata.url,
+      });
+    } catch (headError) {
+      console.error('Blob verification failed:', headError);
+      throw new Error('Failed to verify blob - file may not exist or permissions issue');
+    }
+
     // Download file from Vercel Blob
-    console.log('Downloading file from blob:', blobUrl);
+    console.log('Downloading file from blob...');
     const blobResponse = await fetch(blobUrl);
 
     if (!blobResponse.ok) {
-      throw new Error('Failed to download file from blob storage');
+      console.error('Blob download failed:', {
+        status: blobResponse.status,
+        statusText: blobResponse.statusText,
+        url: blobUrl,
+      });
+      throw new Error(`Failed to download file from blob storage (HTTP ${blobResponse.status})`);
     }
 
     const arrayBuffer = await blobResponse.arrayBuffer();
+    console.log(`Downloaded ${arrayBuffer.byteLength} bytes from blob`);
 
     // Validate file size (OpenAI Whisper API max is 25MB)
     const MAX_SIZE = 25 * 1024 * 1024;
@@ -79,40 +99,54 @@ export async function POST(request: NextRequest) {
     console.log('Transcription completed, cleaning up blob...');
 
     // Delete blob after successful transcription
+    let blobDeleted = false;
     try {
       await del(blobUrl);
-      console.log('Blob deleted successfully');
+      blobDeleted = true;
+      console.log('✓ Blob deleted successfully:', blobUrl);
     } catch (deleteError) {
-      console.error('Failed to delete blob:', deleteError);
+      console.error('✗ Failed to delete blob:', deleteError);
       // Continue anyway - transcription was successful
     }
 
     return NextResponse.json({
       transcript: transcription,
+      blobDeleted,
+      message: blobDeleted
+        ? 'Transcription complete and file cleaned up'
+        : 'Transcription complete (cleanup warning - check logs)',
     });
   } catch (error: unknown) {
     console.error('Transcription error:', error);
 
     // Try to cleanup blob even on error
+    let blobDeletedOnError = false;
     if (blobUrl) {
       try {
         await del(blobUrl);
-        console.log('Blob deleted after error');
+        blobDeletedOnError = true;
+        console.log('✓ Blob deleted after error:', blobUrl);
       } catch (deleteError) {
-        console.error('Failed to delete blob after error:', deleteError);
+        console.error('✗ Failed to delete blob after error:', deleteError);
       }
     }
 
     // Handle different error types
     if (error instanceof Error) {
       return NextResponse.json(
-        { error: error.message || 'Failed to transcribe audio' },
+        {
+          error: error.message || 'Failed to transcribe audio',
+          blobDeleted: blobDeletedOnError,
+        },
         { status: 500 }
       );
     }
 
     return NextResponse.json(
-      { error: 'An unexpected error occurred' },
+      {
+        error: 'An unexpected error occurred',
+        blobDeleted: blobDeletedOnError,
+      },
       { status: 500 }
     );
   }

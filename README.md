@@ -55,7 +55,14 @@ OPENAI_API_KEY=sk-...
 
 Get your API key from [OpenAI Platform](https://platform.openai.com/api-keys).
 
-**Note for local development:** Vercel Blob requires `BLOB_READ_WRITE_TOKEN`. On Vercel deployment this is automatically set. For local testing, you can get this from your Vercel project dashboard under Storage → Blob.
+**Note for local development:** Vercel Blob requires `BLOB_READ_WRITE_TOKEN`.
+- On Vercel deployment this is **automatically set** - no action needed!
+- For local testing, get the token from: Vercel Dashboard → Your Project → Storage → Blob → `.env.local` tab
+
+```bash
+# Add to .env.local for local development (optional)
+BLOB_READ_WRITE_TOKEN=vercel_blob_rw_...
+```
 
 ### 4. Run the development server
 

@@ -109,8 +109,21 @@ export default function Home() {
       }
 
       const data = await response.json();
+
+      // Show cleanup status
+      setStatusMessage('Cleaning up temporary files...');
+
+      // Small delay to show cleanup message
+      await new Promise(resolve => setTimeout(resolve, 500));
+
       setTranscript(data.transcript);
       setStatusMessage('');
+
+      // Show warning if blob wasn't deleted
+      if (!data.blobDeleted) {
+        console.warn('Blob cleanup failed - temporary file may not have been deleted');
+        setError('Warning: Temporary file cleanup may have failed. Transcription was successful.');
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
       setStatusMessage('');
@@ -206,12 +219,26 @@ export default function Home() {
                 </Typography>
               </Box>
             )}
+
+            {/* Processing Status */}
+            {loading && statusMessage && (
+              <Alert severity="info" className="mt-4" icon={false}>
+                <Box className="flex items-center gap-2">
+                  <CircularProgress size={16} />
+                  <Typography variant="body2">{statusMessage}</Typography>
+                </Box>
+              </Alert>
+            )}
           </Box>
         )}
 
         {/* Error */}
         {error && (
-          <Alert severity="error" className="mt-6">
+          <Alert
+            severity={error.includes('Warning:') ? 'warning' : 'error'}
+            className="mt-6"
+            onClose={() => setError('')}
+          >
             {error}
           </Alert>
         )}
