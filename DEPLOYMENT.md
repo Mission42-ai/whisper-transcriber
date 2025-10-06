@@ -2,22 +2,31 @@
 
 ## Vercel Pro Configuration
 
-This app is optimized for **Vercel Pro** plan with the following configuration:
+This app uses **Vercel Blob Storage** to completely bypass serverless function body size limits.
+
+### Architecture
+
+**Blob Upload Flow:**
+1. Client uploads file directly to Vercel Blob (bypasses API route body limits)
+2. Client receives blob URL
+3. Client sends blob URL to transcribe API
+4. API downloads file from blob
+5. API sends to OpenAI Whisper
+6. API deletes blob after transcription
+
+**Benefits:**
+- ✅ No 413 errors - uploads go directly to Blob storage
+- ✅ Supports full 25MB files (OpenAI Whisper API limit)
+- ✅ Automatic cleanup - blobs deleted after use
 
 ### Current Settings
 
 - **Max File Size**: 25MB (OpenAI Whisper API limit)
 - **Function Timeout**: 60 seconds
 - **Runtime**: Node.js
+- **Storage**: Vercel Blob (10GB included on Pro plan)
 
-### Known Limitations
-
-Vercel has platform-level request body size limits that **cannot be increased via configuration**:
-
-- Even on Pro plan, very large files (>10-15MB) may occasionally fail with 413 errors
-- This is a Vercel infrastructure limitation, not a bug in the application
-
-### If You Experience 413 Errors
+### No More 413 Errors!
 
 If you consistently get `413 Content Too Large` errors with files over ~10MB, you have these options:
 

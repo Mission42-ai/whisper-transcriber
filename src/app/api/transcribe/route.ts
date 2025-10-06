@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { del } from '@vercel/blob';
 import OpenAI from 'openai';
 
 export async function POST(request: NextRequest) {
+  let blobUrl: string | null = null;
+
   try {
     // Check if API key is configured
     if (!process.env.OPENAI_API_KEY) {
@@ -15,19 +18,31 @@ export async function POST(request: NextRequest) {
       apiKey: process.env.OPENAI_API_KEY,
     });
 
-    const formData = await request.formData();
-    const file = formData.get('file') as File;
+    // Parse JSON body with blob URL
+    const body = await request.json();
+    blobUrl = body.blobUrl;
+    const filename = body.filename || 'audio.opus';
 
-    if (!file) {
+    if (!blobUrl) {
       return NextResponse.json(
-        { error: 'No file provided' },
+        { error: 'No blob URL provided' },
         { status: 400 }
       );
     }
 
+    // Download file from Vercel Blob
+    console.log('Downloading file from blob:', blobUrl);
+    const blobResponse = await fetch(blobUrl);
+
+    if (!blobResponse.ok) {
+      throw new Error('Failed to download file from blob storage');
+    }
+
+    const arrayBuffer = await blobResponse.arrayBuffer();
+
     // Validate file size (OpenAI Whisper API max is 25MB)
-    const MAX_SIZE = 25 * 1024 * 1024; // 25MB - OpenAI Whisper API limit
-    if (file.size > MAX_SIZE) {
+    const MAX_SIZE = 25 * 1024 * 1024;
+    if (arrayBuffer.byteLength > MAX_SIZE) {
       return NextResponse.json(
         { error: 'File size exceeds 25MB limit (OpenAI Whisper API maximum).' },
         { status: 400 }
@@ -35,9 +50,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Create a File object for OpenAI
-    const audioFile = new File([await file.arrayBuffer()], file.name, {
-      type: file.type,
+    const audioFile = new File([arrayBuffer], filename, {
+      type: blobResponse.headers.get('content-type') || 'audio/mpeg',
     });
+
+    console.log('Transcribing with Whisper API...');
 
     // Transcribe with OpenAI Whisper
     const transcription = await openai.audio.transcriptions.create({
@@ -47,20 +64,38 @@ export async function POST(request: NextRequest) {
       response_format: 'text',
     });
 
+    console.log('Transcription completed, cleaning up blob...');
+
+    // Delete blob after successful transcription
+    try {
+      await del(blobUrl);
+      console.log('Blob deleted successfully');
+    } catch (deleteError) {
+      console.error('Failed to delete blob:', deleteError);
+      // Continue anyway - transcription was successful
+    }
+
     return NextResponse.json({
       transcript: transcription,
     });
   } catch (error: unknown) {
     console.error('Transcription error:', error);
 
+    // Try to cleanup blob even on error
+    if (blobUrl) {
+      try {
+        await del(blobUrl);
+        console.log('Blob deleted after error');
+      } catch (deleteError) {
+        console.error('Failed to delete blob after error:', deleteError);
+      }
+    }
+
     // Handle different error types
     if (error instanceof Error) {
-      // Check for OpenAI API errors
-      const openAIError = error as { status?: number; message?: string };
-
       return NextResponse.json(
-        { error: openAIError.message || 'Failed to transcribe audio' },
-        { status: openAIError.status || 500 }
+        { error: error.message || 'Failed to transcribe audio' },
+        { status: 500 }
       );
     }
 

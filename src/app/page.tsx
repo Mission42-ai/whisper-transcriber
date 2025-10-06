@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
+import { upload } from '@vercel/blob/client';
 import {
   Container,
   Paper,
@@ -10,6 +11,7 @@ import {
   Button,
   CircularProgress,
   Alert,
+  LinearProgress,
 } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import DownloadIcon from '@mui/icons-material/Download';
@@ -18,7 +20,9 @@ export default function Home() {
   const [file, setFile] = useState<File | null>(null);
   const [transcript, setTranscript] = useState<string>('');
   const [loading, setLoading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState<string>('');
+  const [statusMessage, setStatusMessage] = useState<string>('');
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     if (acceptedFiles.length > 0) {
@@ -50,14 +54,32 @@ export default function Home() {
 
     setLoading(true);
     setError('');
+    setUploadProgress(0);
+    setStatusMessage('Uploading file...');
 
     try {
-      const formData = new FormData();
-      formData.append('file', file);
+      // Step 1: Upload file to Vercel Blob
+      const blob = await upload(file.name, file, {
+        access: 'public',
+        handleUploadUrl: '/api/upload',
+        onUploadProgress: (progress) => {
+          setUploadProgress(progress.percentage);
+        },
+      });
 
+      setStatusMessage('Transcribing audio...');
+      setUploadProgress(100);
+
+      // Step 2: Send blob URL to transcribe API
       const response = await fetch('/api/transcribe', {
         method: 'POST',
-        body: formData,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          blobUrl: blob.url,
+          filename: file.name,
+        }),
       });
 
       // Check if response is JSON
@@ -88,10 +110,13 @@ export default function Home() {
 
       const data = await response.json();
       setTranscript(data.transcript);
+      setStatusMessage('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
+      setStatusMessage('');
     } finally {
       setLoading(false);
+      setUploadProgress(0);
     }
   };
 
@@ -169,8 +194,18 @@ export default function Home() {
               disabled={loading}
               startIcon={loading ? <CircularProgress size={20} /> : <CloudUploadIcon />}
             >
-              {loading ? 'Transcribing...' : 'Transcribe'}
+              {loading ? statusMessage || 'Processing...' : 'Transcribe'}
             </Button>
+
+            {/* Upload Progress */}
+            {loading && uploadProgress > 0 && uploadProgress < 100 && (
+              <Box className="mt-4">
+                <LinearProgress variant="determinate" value={uploadProgress} />
+                <Typography variant="caption" color="text.secondary" className="mt-1 block text-center">
+                  {Math.round(uploadProgress)}%
+                </Typography>
+              </Box>
+            )}
           </Box>
         )}
 

@@ -50,6 +50,8 @@ OPENAI_API_KEY=sk-...
 
 Get your API key from [OpenAI Platform](https://platform.openai.com/api-keys).
 
+**Note for local development:** Vercel Blob requires `BLOB_READ_WRITE_TOKEN`. On Vercel deployment this is automatically set. For local testing, you can get this from your Vercel project dashboard under Storage → Blob.
+
 ### 4. Run the development server
 
 ```bash
@@ -68,12 +70,17 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 2. Add your `OPENAI_API_KEY` in the Vercel environment variables
 3. Deploy!
 
-**Important Notes for Vercel Pro:**
-- **File Size**: Configured for up to 25MB (OpenAI Whisper API maximum)
-  - Vercel Pro plan recommended for optimal performance with larger files
-  - If you encounter 413 errors with large files, this is a Vercel platform limitation
-- **Function Timeout**: 60s (configured in vercel.json, works on Pro plan)
-- **Alternative**: For files > 10MB or frequent large uploads, consider Railway.app or Render.com for better reliability
+**Architecture:**
+This app uses **Vercel Blob Storage** to bypass serverless function body size limits:
+1. Client uploads file directly to Vercel Blob (no size limit)
+2. API receives blob URL and downloads file server-side
+3. File is sent to OpenAI Whisper API for transcription
+4. Blob is automatically deleted after transcription
+
+**Requirements:**
+- **File Size**: Up to 25MB (OpenAI Whisper API maximum)
+- **Vercel Blob**: Included in Pro plan (10GB storage)
+- **Function Timeout**: 60s (Pro plan)
 
 ### Manual Deployment
 
