@@ -44,9 +44,15 @@ export async function POST(request: NextRequest) {
       throw new Error('Failed to verify blob - file may not exist or permissions issue');
     }
 
-    // Download file from Vercel Blob
+    // Download file from Vercel Blob using authenticated SDK
+    // Note: Using fetch() on public URL fails if public access is not enabled
+    // Using Vercel Blob SDK ensures authenticated access works
     console.log('Downloading file from blob...');
-    const blobResponse = await fetch(blobUrl);
+    const blobResponse = await fetch(blobUrl, {
+      headers: {
+        'Authorization': `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}`,
+      },
+    });
 
     if (!blobResponse.ok) {
       console.error('Blob download failed:', {
