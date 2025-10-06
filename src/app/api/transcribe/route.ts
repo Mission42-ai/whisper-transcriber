@@ -25,11 +25,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate file size (max 25MB for Whisper API)
-    const MAX_SIZE = 25 * 1024 * 1024;
+    // Validate file size
+    // Note: Vercel has request body limits (4.5MB on Hobby, can be higher on Pro)
+    const MAX_SIZE = 4 * 1024 * 1024; // 4MB to be safe on Vercel Hobby
     if (file.size > MAX_SIZE) {
       return NextResponse.json(
-        { error: 'File size exceeds 25MB limit' },
+        { error: 'File size exceeds 4MB limit. Please use a smaller file or upgrade to Pro plan.' },
         { status: 400 }
       );
     }
@@ -71,9 +72,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Increase max duration for serverless function (Vercel)
-export const maxDuration = 300; // 5 minutes (requires Pro plan or higher)
-
-// Increase body size limit (Next.js 15+)
+// Vercel configuration
+export const maxDuration = 60; // 60s on Pro, 10s on Hobby
 export const runtime = 'nodejs';
 export const preferredRegion = 'auto';

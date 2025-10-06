@@ -34,6 +34,15 @@ export default function Home() {
       'audio/*': ['.opus', '.mp3', '.wav', '.m4a', '.ogg', '.webm'],
     },
     maxFiles: 1,
+    maxSize: 4 * 1024 * 1024, // 4MB limit for Vercel
+    onDropRejected: (fileRejections) => {
+      const error = fileRejections[0]?.errors[0];
+      if (error?.code === 'file-too-large') {
+        setError('File is too large. Maximum size is 4MB on Vercel.');
+      } else {
+        setError(error?.message || 'File rejected');
+      }
+    },
   });
 
   const handleTranscribe = async () => {
@@ -137,7 +146,7 @@ export default function Home() {
                 or click to select a file
               </Typography>
               <Typography variant="caption" color="text.secondary" className="mt-2 block">
-                Supports: .opus, .mp3, .wav, .m4a, .ogg, .webm
+                Supports: .opus, .mp3, .wav, .m4a, .ogg, .webm (max 4MB on Vercel)
               </Typography>
             </>
           )}
