@@ -49,12 +49,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Handle OPUS files - OpenAI expects .ogg extension for OPUS codec
+    // WhatsApp voice messages are OPUS codec in OGG container
+    let finalFilename = filename;
+    let contentType = blobResponse.headers.get('content-type') || 'audio/mpeg';
+
+    if (filename.toLowerCase().endsWith('.opus')) {
+      // Rename .opus to .ogg (same format, different extension)
+      finalFilename = filename.replace(/\.opus$/i, '.ogg');
+      contentType = 'audio/ogg';
+      console.log(`Converting OPUS filename: ${filename} → ${finalFilename}`);
+    }
+
     // Create a File object for OpenAI
-    const audioFile = new File([arrayBuffer], filename, {
-      type: blobResponse.headers.get('content-type') || 'audio/mpeg',
+    const audioFile = new File([arrayBuffer], finalFilename, {
+      type: contentType,
     });
 
-    console.log('Transcribing with Whisper API...');
+    console.log('Transcribing with Whisper API...', { filename: finalFilename, type: contentType });
 
     // Transcribe with OpenAI Whisper
     const transcription = await openai.audio.transcriptions.create({

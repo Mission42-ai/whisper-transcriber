@@ -35,7 +35,7 @@ export default function Home() {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      'audio/*': ['.opus', '.mp3', '.wav', '.m4a', '.ogg', '.webm'],
+      'audio/*': ['.opus', '.mp3', '.wav', '.m4a', '.ogg', '.webm', '.flac', '.mp4', '.mpeg', '.mpga', '.oga'],
     },
     maxFiles: 1,
     maxSize: 25 * 1024 * 1024, // 25MB - OpenAI Whisper API limit
@@ -171,7 +171,7 @@ export default function Home() {
                 or click to select a file
               </Typography>
               <Typography variant="caption" color="text.secondary" className="mt-2 block">
-                Supports: .opus, .mp3, .wav, .m4a, .ogg, .webm (max 25MB)
+                Supports: .opus (WhatsApp), .mp3, .wav, .m4a, .ogg, .webm, .flac (max 25MB)
               </Typography>
             </>
           )}

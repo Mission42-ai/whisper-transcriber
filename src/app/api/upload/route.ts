@@ -9,20 +9,13 @@ export async function POST(request: Request): Promise<NextResponse> {
       body,
       request,
       onBeforeGenerateToken: async () => {
-        // Allow audio file uploads
+        // Allow audio file uploads (all OpenAI Whisper API supported formats)
         return {
           allowedContentTypes: [
-            'audio/opus',
-            'audio/mpeg',
-            'audio/mp3',
-            'audio/wav',
-            'audio/mp4',
-            'audio/m4a',
-            'audio/ogg',
-            'audio/webm',
-            'audio/*',
+            'audio/*', // Allow all audio types
+            'video/mp4', // mp4 can contain audio
           ],
-          maximumSizeInBytes: 25 * 1024 * 1024, // 25MB
+          maximumSizeInBytes: 25 * 1024 * 1024, // 25MB (OpenAI Whisper API limit)
         };
       },
       onUploadCompleted: async ({ blob }) => {

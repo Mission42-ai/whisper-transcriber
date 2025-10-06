@@ -12,12 +12,17 @@ A simple, clean web app for transcribing audio files using OpenAI's Whisper API.
 
 ## Supported Audio Formats
 
-- `.opus` (WhatsApp voice messages)
-- `.mp3`
-- `.wav`
+All OpenAI Whisper API supported formats:
+
+- `.opus` (WhatsApp voice messages - auto-converted to .ogg)
+- `.mp3`, `.mp4`, `.mpeg`, `.mpga`
 - `.m4a`
-- `.ogg`
+- `.wav`
+- `.ogg`, `.oga`
 - `.webm`
+- `.flac`
+
+**Note:** `.opus` files are automatically converted to `.ogg` format (OPUS codec in OGG container) for compatibility with OpenAI Whisper API.
 
 ## Setup
 
